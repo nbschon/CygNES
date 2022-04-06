@@ -1,0 +1,10 @@
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/CygNES_lib.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/CygNES_exe.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/package.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/package_source.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/edit_cache.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/rebuild_cache.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/list_install_components.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/install.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/install/local.dir
+/Users/noahschonhorn/Documents/CygNES/cmake/CMakeFiles/install/strip.dir
