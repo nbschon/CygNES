@@ -2,7 +2,119 @@
 // Created by Noah Schonhorn on 4/2/22.
 //
 
+#include <cstdint>
 #include "ppu.hpp"
+#include "utils.hpp"
+
+ppu::ppu()
+{
+    assert(init(m_window, m_renderer, screen_width * 2, screen_height * 2));
+    m_render_target = std::shared_ptr<SDL_Texture>(SDL_CreateTexture(&*m_renderer,
+                                                               SDL_PIXELFORMAT_RGBA8888,
+                                                               SDL_TEXTUREACCESS_TARGET,
+                                                               screen_width,
+                                                               screen_height),
+                                                   SDL_DestroyTexture);
+
+    for (auto &i : m_vram)
+    {
+        i = 0x00;
+    }
+
+    for (auto &i : m_pal_ram)
+    {
+        i = 0x00;
+    }
+
+    m_scanline = 0;
+    m_pixel = 0;
+}
+
+auto ppu::fake_render() -> void
+{
+    SDL_SetRenderTarget(&*m_renderer, &*m_render_target);
+    SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0x00, 0x00, 0xFF);
+    SDL_RenderClear(&*m_renderer);
+
+    uint8_t tile1;
+    uint8_t tile2;
+
+    for (int y = 0; y < 16; ++y)
+    {
+        for (int x = 0; x < 16; ++x)
+        {
+            for (int h = 0; h < 8; ++h)
+            {
+                tile1 = bus_read((x * 16) + (y * 256) + h);
+                tile2 = bus_read((x * 16) + (y * 256) + 8 + h);
+
+                for (int w = 0; w < 8; ++w)
+                {
+                    uint8_t pixel = ((tile1 & 0x1) << 1) + (tile2 & 0x1);
+
+                    if (pixel == 1)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0xFF, 0x00, 0x00, 0xFF);
+                    }
+                    else if (pixel == 2)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0xFF, 0x00, 0xFF);
+                    }
+                    else if (pixel == 3)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0x00, 0xFF, 0xFF);
+                    }
+                    else if (pixel == 0)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0x00, 0x00, 0xFF);
+                    }
+
+                    SDL_RenderDrawPoint(&*m_renderer, (x * 8) + 8 - w, (y * 8) + h);
+                    tile1 >>= 1;
+                    tile2 >>= 1;
+                }
+            }
+
+            for (int h = 0; h < 8; ++h)
+            {
+                tile1 = bus_read((x * 16) + (y * 256) + h + 0x1000);
+                tile2 = bus_read((x * 16) + (y * 256) + 8 + h + 0x1000);
+
+                for (int w = 0; w < 8; ++w)
+                {
+                    uint8_t pixel = ((tile1 & 0x1) << 1) + (tile2 & 0x1);
+
+                    if (pixel == 1)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0xFF, 0x00, 0x00, 0xFF);
+                    }
+                    else if (pixel == 2)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0xFF, 0x00, 0xFF);
+                    }
+                    else if (pixel == 3)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0x00, 0xFF, 0xFF);
+                    }
+                    else if (pixel == 0)
+                    {
+                        SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0x00, 0x00, 0xFF);
+                    }
+
+                    SDL_RenderDrawPoint(&*m_renderer, (x * 8) + 8 - w + 128, (y * 8) + h);
+                    tile1 >>= 1;
+                    tile2 >>= 1;
+                }
+            }
+        }
+
+    }
+
+    SDL_SetRenderTarget(&*m_renderer, nullptr);
+    SDL_Rect srcRect{0, 0, 256, 240};
+    SDL_RenderCopy(&*m_renderer, &*m_render_target, &srcRect, nullptr);
+//    SDL_RenderPresent(&*m_renderer);
+}
 
 auto ppu::connect_cartridge(std::shared_ptr<cartridge>& cart) -> void
 {
@@ -29,6 +141,7 @@ auto ppu::reg_read(uint16_t addr) -> uint8_t
             byte = m_status.status;
             m_status.vblank = 0;
             m_latch = false;
+            byte |= 0x80;
             break;
         case 0x04:
             // TODO: OAM stuff
@@ -51,7 +164,7 @@ auto ppu::reg_read(uint16_t addr) -> uint8_t
             }
             break;
         default:
-            printf("NOTE: Illegal PPU read attempt\n");
+            printf("NOTE: Illegal PPU read attempt at addr $%04X\n", addr);
             break;
     }
 
@@ -115,7 +228,7 @@ auto ppu::reg_write(uint16_t addr, uint8_t byte) -> void
             }
             break;
         default:
-            printf("NOTE: Illegal PPU write attempt\n");
+            printf("NOTE: Illegal PPU write attempt at addr %04X\n", addr);
             break;
     }
 }
@@ -123,6 +236,8 @@ auto ppu::reg_write(uint16_t addr, uint8_t byte) -> void
 auto ppu::bus_read(uint16_t addr) -> uint8_t
 {
     uint8_t byte;
+
+    addr &= 0x3FFF;
 
     switch(addr)
     {
@@ -143,6 +258,8 @@ auto ppu::bus_read(uint16_t addr) -> uint8_t
             byte = m_pal_ram.at(addr & 0x1F);
             break;
     }
+
+    return byte;
 }
 
 auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
@@ -167,17 +284,244 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
             break;
     }
 }
-auto ppu::clock() -> void
-{
 
+auto ppu::clock(line_type type) -> void
+{
+    if (type == nmi && m_pixel == 1)
+    {
+        m_status.vblank = 1;
+        if (m_ctrl.do_nmi == 1)
+        {
+            m_do_interr = true;
+        }
+    }
+    else if (type == post && m_pixel == 0)
+    {
+        SDL_SetRenderTarget(&*m_renderer, nullptr);
+        SDL_Rect srcRect{0, 0, 256, 240};
+        SDL_RenderCopy(&*m_renderer, &*m_render_target, &srcRect, nullptr);
+        SDL_RenderPresent(&*m_renderer);
+        SDL_SetRenderTarget(&*m_renderer, &*m_render_target);
+    }
+    else if (type == visible || type == pre)
+    {
+        switch (m_pixel)
+        {
+            case 1:
+                m_nt_byte = bus_read(0x2000 | (m_vram_addr.addr & 0x0FFF));
+                if (type == pre)
+                {
+                    m_status.vblank = 0;
+                }
+                break;
+            case 2 ... 255:
+            case 322 ... 337:
+                draw();
+                switch ((m_pixel) % 8)
+                {
+                    case 0:
+                        reload();
+                        m_nt_byte = bus_read(0x2000 | (m_vram_addr.addr & 0x0FFF));
+                        break;
+                    case 2:
+                        m_attr_byte = bus_read(0x23C0 | (m_vram_addr.addr & 0x0C00)
+                                               | ((m_vram_addr.addr >> 4) & 0x38)
+                                               | ((m_vram_addr.addr >> 2) & 0x07));
+                        if (m_vram_addr.coarse_y & 0x2)
+                        {
+                            m_attr_byte >>= 4;
+                        }
+                        if (m_vram_addr.coarse_x & 0x2)
+                        {
+                            m_attr_byte >>= 2;
+                        }
+
+                        // don't need upper bits for attribute data
+                        m_attr_byte &= 0x3;
+                        break;
+                    case 4:
+                        m_pattern_low = bus_read(
+                            (m_ctrl.bg_tbl << 12) + (static_cast<uint16_t>(m_nt_byte) << 4) + m_vram_addr.fine_y);
+                        break;
+                    case 6:
+                        m_pattern_high = bus_read(
+                            (m_ctrl.bg_tbl << 12) + (static_cast<uint16_t>(m_nt_byte) << 4) + m_vram_addr.fine_y + 8);
+                        break;
+                    case 7:
+                        inc_x();
+                        break;
+                }
+                break;
+            case 256:
+                draw();
+                m_pattern_high = bus_read(m_vram_addr.addr);
+                inc_y();
+                break;
+            case 257:
+                draw();
+                reload();
+                copy_x();
+                break;
+            case 280 ... 304:
+                if (type == pre)
+                {
+                    copy_y();
+                }
+                break;
+            case 338:
+            case 340:
+                m_nt_byte = bus_read(0x2000 | (m_vram_addr.addr & 0x0FFF));
+                break;
+        }
+    }
 }
 
-auto ppu::nmi() -> bool
+auto ppu::nonmask() -> bool
 {
     return false;
 }
 
 auto ppu::interr() -> bool
 {
-    return false;
+    if (m_do_interr)
+    {
+        m_do_interr = false;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+auto ppu::step() -> void
+{
+//    switch (m_scanline)
+//    {
+//        case 0 ... 239:
+//            clock(visible);
+//            break;
+//        case 240:
+//            clock(post);
+//            break;
+//        case 241:
+//            clock(nmi);
+//            break;
+//        case 261:
+//            clock(pre);
+//            break;
+//    }
+//
+//    m_pixel++;
+//    if (m_pixel > 340)
+//    {
+//        m_pixel = 0;
+//        m_scanline++;
+//
+//        if (m_scanline > 261)
+//        {
+//            m_scanline = 0;
+//        }
+//    }
+}
+
+auto ppu::copy_x() -> void
+{
+    m_vram_addr.coarse_x = m_temp_addr.coarse_x;
+    m_vram_addr.nametable_x = m_temp_addr.nametable_x;
+}
+
+auto ppu::copy_y() -> void
+{
+    m_vram_addr.fine_y = m_temp_addr.fine_y;
+    m_vram_addr.coarse_y = m_temp_addr.coarse_y;
+    m_vram_addr.nametable_y = m_temp_addr.coarse_y;
+}
+
+auto ppu::inc_x() -> void
+{
+    // Stolen from NESDev wiki
+    // It's public info for a reason!
+    if ((m_vram_addr.addr & 0x1F) == 31)
+    {
+        m_vram_addr.addr &= ~(0x1F);
+        m_vram_addr.addr ^= 0x400;
+    }
+    else
+    {
+        m_vram_addr.addr++;
+    }
+}
+
+auto ppu::inc_y() -> void
+{
+    if ((m_vram_addr.addr & 0x7000) != 0x7000)
+    {
+        m_vram_addr.addr += 0x1000;
+    }
+    else
+    {
+        m_vram_addr.addr &= ~(0x7000);
+        uint16_t y = ((m_vram_addr.addr & 0x3E0) >> 5);
+        if (y == 29)
+        {
+            y = 0;
+            m_vram_addr.addr ^= 0x0800;
+        }
+        else if (y == 31)
+        {
+            y = 0;
+        }
+        else
+        {
+            y++;
+        }
+
+        m_vram_addr.addr = ((m_vram_addr.addr & ~(0x3E0)) | (y << 5));
+    }
+}
+
+auto ppu::reload() -> void
+{
+    m_p_shift_low = (m_p_shift_low & 0xFF00) | m_pattern_low;
+    m_p_shift_high = (m_p_shift_high & 0xFF00) | m_pattern_high;
+
+    m_a_shift_low = (m_a_shift_low & 0xFF00) | ((m_attr_byte & 1) ? 0xFF : 0x00);
+    m_a_shift_high = (m_a_shift_high & 0xFF00) | ((m_attr_byte & 2) ? 0xFF : 0x00);
+}
+
+auto ppu::shift() -> void
+{
+    m_p_shift_low  <<= 1;
+    m_p_shift_high <<= 1;
+    m_a_shift_low  <<= 1;
+    m_a_shift_high <<= 1;
+}
+
+auto ppu::draw() -> void
+{
+    uint8_t bg_pix = 0;
+    uint8_t bg_pal = 0;
+
+    uint16_t mask = 0x8000 >> m_fine_x;
+
+    uint8_t low_pix =(m_p_shift_low & mask) > 0;
+    uint8_t high_pix =(m_p_shift_high & mask) > 0;
+
+    bg_pix = (high_pix << 1) | low_pix;
+
+    uint8_t low_pal = (m_a_shift_low & mask) > 0;
+    uint8_t high_pal = (m_a_shift_high & mask) > 0;
+
+    bg_pal = (high_pal << 1) | low_pal;
+
+    SDL_Color col = get_color(bg_pal, bg_pix);
+    SDL_SetRenderDrawColor(&*m_renderer, col.r, col.g, col.b, 0xFF);
+    SDL_RenderDrawPoint(&*m_renderer, m_pixel, m_scanline);
+
+    shift();
+}
+
+auto ppu::get_color(uint8_t pal, uint8_t pix) -> SDL_Color
+{
+    return m_colors.at(bus_read(0x3F00 + (pal << 2) + pix) & 0x3F);
 }

@@ -135,7 +135,7 @@ auto cartridge::ppu_read(uint16_t addr, uint8_t& byte) -> bool
     bool success = false;
     int mapped_addr = 0;
 
-    if (m_mapper->cpu_read(addr, mapped_addr))
+    if (m_mapper->ppu_read(addr, mapped_addr))
     {
         byte = m_chr_rom[mapped_addr];
         success = true;
@@ -149,7 +149,7 @@ auto cartridge::ppu_write(uint16_t addr, uint8_t byte) -> bool
     bool success = false;
     int mapped_addr = 0;
 
-    if (m_mapper->cpu_read(addr, mapped_addr))
+    if (m_mapper->ppu_write(addr, mapped_addr))
     {
         m_chr_rom[mapped_addr] = byte;
         success = true;

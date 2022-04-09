@@ -31,6 +31,7 @@ cpu::cpu()
 auto cpu::connect_cartridge(std::shared_ptr<cartridge>& cart) -> void
 {
     this->m_cart = cart;
+    m_ppu->connect_cartridge(cart);
 }
 
 auto cpu::read(uint16_t addr) -> uint8_t
@@ -43,7 +44,7 @@ auto cpu::read(uint16_t addr) -> uint8_t
             byte = m_ram.at(addr & 0x7FF);
             break;
         case 0x2000 ... 0x3FFF:
-            byte = m_ppu->reg_read(addr);
+            byte = m_ppu->reg_read(addr & 0x07);
             break;
         case 0x8000 ... 0xFFFF:
             m_cart->cpu_read(addr, byte);
@@ -64,7 +65,7 @@ auto cpu::write(uint16_t addr, uint8_t byte) -> void
             m_ram.at(addr & 0x7FF) = byte;
             break;
         case 0x2000 ... 0x3FFF:
-            m_ppu->reg_write(addr, byte);
+            m_ppu->reg_write(addr & 0x07, byte);
             break;
         case 0x8000 ... 0xFFFF:
             m_cart->cpu_write(addr, byte);
@@ -1022,8 +1023,8 @@ auto cpu::reset() -> void
     uint16_t low_byte = read(m_addr_abs);
     uint16_t high_byte = read(m_addr_abs + 1);
 
-//    m_prog_counter = (high_byte << 8) | low_byte;
-    m_prog_counter = 0xC000;
+    m_prog_counter = (high_byte << 8) | low_byte;
+//    m_prog_counter = 0xC000;
 
     m_accumulator = 0;
     m_x_reg = 0;
@@ -1036,6 +1037,7 @@ auto cpu::reset() -> void
     m_fetched_byte = 0x00;
 
     m_cycles = 8;
+    m_ppu->reset();
 }
 
 auto cpu::interrupt_request() -> void
@@ -1779,10 +1781,14 @@ auto cpu::clock() -> void
 
 auto cpu::step() -> void
 {
-    this->m_ppu->clock();
-    this->m_ppu->clock();
-    this->m_ppu->clock();
+    m_ppu->step();
+    m_ppu->step();
+    m_ppu->step();
 
-    if (m_ppu)
-    this->clock();
+    if (m_ppu->interr())
+    {
+        nonmaskable_interrupt();
+    }
+
+    clock();
 }

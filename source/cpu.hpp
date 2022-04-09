@@ -4,7 +4,6 @@
 #include <array>
 #include <memory>
 #include <functional>
-#include "cartridge.hpp"
 #include "ppu.hpp"
 
 class cpu

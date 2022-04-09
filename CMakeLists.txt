@@ -19,6 +19,8 @@ include(cmake/variables.cmake)
 add_library(
     CygNES_lib OBJECT
     source/lib.cpp
+    source/utils.cpp
+    source/utils.hpp
     source/cpu.cpp
     source/cpu.hpp
     source/cartridge.cpp
@@ -26,7 +28,9 @@ add_library(
     source/mapper.cpp
     source/mapper.hpp
     source/ppu.cpp
-    source/ppu.hpp source/mapper000.cpp source/mapper000.hpp)
+    source/ppu.hpp
+    source/mapper000.cpp
+    source/mapper000.hpp)
 
 target_include_directories(
     CygNES_lib ${warning_guard}

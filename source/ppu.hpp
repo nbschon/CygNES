@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <array>
+#include <cstdint>
 
 #include "SDL.h"
 #include "cartridge.hpp"
@@ -19,11 +20,14 @@ class ppu
 
     std::shared_ptr<cartridge> m_cart = nullptr;
 
-    bool do_nmi;
-    bool do_interr;
+    bool m_do_nmi;
+    bool m_do_interr;
 
     bool m_latch = false;
 
+    /*
+     * $2000
+     */
     union
     {
         struct
@@ -41,6 +45,9 @@ class ppu
         uint8_t ctrl;
     } m_ctrl;
 
+    /*
+     * $2001
+     */
     union
     {
         struct
@@ -58,10 +65,9 @@ class ppu
         uint8_t mask;
     } m_mask;
 
-    // uint8_t m_oam_addr;
-    // uint8_t m_oam_data;
-    uint8_t m_scroll;
-
+    /*
+     * $2002
+     */
     union
     {
         struct
@@ -74,6 +80,10 @@ class ppu
 
         uint8_t status;
     } m_status;
+
+    // uint8_t m_oam_addr;
+    // uint8_t m_oam_data;
+    uint8_t m_scroll;
 
     union addr_reg
     {
@@ -100,16 +110,82 @@ class ppu
     uint8_t m_fine_x;
     uint8_t m_read_buffer;
 
+    uint8_t m_nt_byte;
+    uint8_t m_attr_byte;
+    uint8_t m_pattern_low;
+    uint8_t m_pattern_high;
+
+    // Pattern table shift register (low)
+    uint8_t m_p_shift_low;
+    // Pattern table shift register (high)
+    uint8_t m_p_shift_high;
+    // Attribute table shift register (low)
+    uint8_t m_a_shift_low;
+    // Attribute table shift register (high)
+    uint8_t m_a_shift_high;
+
+    // Helper methods to consolidate PPU operations
+    auto copy_x() -> void;
+    auto copy_y() -> void;
+    auto inc_x()  -> void;
+    auto inc_y()  -> void;
+    auto reload() -> void;
+    auto shift()  -> void;
+    auto draw()   -> void;
+
     static const int vram_size = 0x800;
     static const int pal_ram_size = 0x20;
+    static const int colors_size = 0x40;
 
+    static const int screen_width = 256;
+    static const int screen_height = 240;
+
+  private:
     std::array<uint8_t, vram_size> m_vram;
     std::array<uint8_t, pal_ram_size> m_pal_ram;
+    std::array<SDL_Color, colors_size> m_colors = {{
+        {84, 84, 84}, {0, 30, 116}, {8, 16, 144}, {48, 0, 136},
+        {68, 0, 100}, {92, 0, 48}, {84, 4, 0}, {60, 24, 0},
+        {32, 42, 0}, {8, 58, 0}, {0, 64, 0}, {0, 60, 0},
+        {0, 50, 60}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
+
+        {152, 150, 152}, {8, 76, 196}, {48, 50, 236}, {92, 30, 228},
+        {136, 20, 176}, {160, 20, 100}, {152, 34, 32}, {120, 60, 0},
+        {84, 90, 0}, {40, 114, 0}, {8, 124, 0}, {0, 118, 40},
+        {0, 102, 120}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
+
+        {236, 238, 236}, {76, 154, 236}, {120, 124, 236}, {176, 98, 236},
+        {228, 84, 236}, {236, 88, 180}, {236, 106, 100}, {212, 136, 32},
+        {160, 170, 0}, {116, 196, 0}, {76, 208, 32}, {56, 204, 108},
+        {56, 180, 204}, {60, 60, 60}, {0, 0, 0}, {0, 0, 0},
+
+        {236, 238, 236}, {168, 204, 236}, {188, 188, 236}, {212, 178, 236},
+        {236, 174, 236}, {236, 174, 212}, {236, 180, 176}, {228, 196, 144},
+        {204, 210, 120}, {180, 222, 120}, {168, 226, 144}, {152, 226, 180},
+        {160, 214, 228}, {160, 162, 160}, {0, 0, 0}, {0, 0, 0}
+    }};
+    auto get_color(uint8_t pal, uint8_t pix) -> SDL_Color;
+
+    int m_scanline;
+    int m_pixel;
 
   public:
+    enum line_type
+    {
+         visible,
+         post,
+         nmi,
+         pre
+    };
+
+    ppu();
     auto connect_cartridge(std::shared_ptr<cartridge>& cart) -> void;
     auto reset() -> void;
-    auto clock() -> void;
+    auto clock(line_type type) -> void;
+    auto step() -> void;
+
+    auto fake_render() -> void;
+    auto fake_render_2() -> void;
 
     auto reg_read(uint16_t addr) -> uint8_t;
     auto reg_write(uint16_t addr, uint8_t byte) -> void;
@@ -117,7 +193,7 @@ class ppu
     auto bus_read(uint16_t addr) -> uint8_t;
     auto bus_write(uint16_t addr, uint8_t byte) -> void;
 
-    auto nmi() -> bool;
+    auto nonmask() -> bool;
     auto interr() -> bool;
 
 };
