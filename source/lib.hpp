@@ -2,6 +2,7 @@
 
 #include <string>
 #include "cpu.hpp"
+#include "ppu.hpp"
 
 /**
  * @brief The core implementation of the executable

@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include "cartridge.hpp"
+#include "ppu.hpp"
 
 class cpu
 {
@@ -21,6 +22,7 @@ class cpu
 
         // ROM file / Cartridge
         std::shared_ptr<cartridge> m_cart = nullptr;
+        std::shared_ptr<ppu> m_ppu = nullptr;
 
         // Type definition for passing addressing mode to instruction
         //using addr_mode_ptr = uint16_t(cpu::*)();
@@ -57,7 +59,7 @@ class cpu
         uint8_t m_stack_ptr;
         uint8_t m_stat_reg;
 
-        // Flags used for the status register
+        // Flags used for the m_status register
         enum m_flags
         {
                 C = 0b00000001,
@@ -174,6 +176,7 @@ public:
         auto connect_cartridge(std::shared_ptr<cartridge>& cart) -> void;
 
         auto clock() -> void;
+        auto step() -> void;
         auto reset() -> void;
         auto interrupt_request() -> void;
         auto nonmaskable_interrupt() -> void;

@@ -20,6 +20,8 @@ class cartridge
 public:
     cartridge();
 
+    auto get_mirroring() const -> bool;
+
     auto open_rom_file(std::string rom_path) -> bool;
     auto cpu_read(uint16_t addr, uint8_t &byte) -> bool;
     auto cpu_write(uint16_t addr, uint8_t byte) -> bool;

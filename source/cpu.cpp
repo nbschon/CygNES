@@ -24,6 +24,8 @@ cpu::cpu()
     file_name.append("-linux.txt");
 #endif
     m_log.open(file_name);
+
+    m_ppu = std::make_shared<ppu>();
 }
 
 auto cpu::connect_cartridge(std::shared_ptr<cartridge>& cart) -> void
@@ -41,12 +43,13 @@ auto cpu::read(uint16_t addr) -> uint8_t
             byte = m_ram.at(addr & 0x7FF);
             break;
         case 0x2000 ... 0x3FFF:
-            m_cart->ppu_read(addr, byte);
+            byte = m_ppu->reg_read(addr);
             break;
         case 0x8000 ... 0xFFFF:
             m_cart->cpu_read(addr, byte);
             break;
         default:
+            printf("NOTE: Invalid CPU read attempt at $%04X\n", addr);
             break;
     }
 
@@ -61,12 +64,13 @@ auto cpu::write(uint16_t addr, uint8_t byte) -> void
             m_ram.at(addr & 0x7FF) = byte;
             break;
         case 0x2000 ... 0x3FFF:
-            m_cart->ppu_write(addr, byte);
+            m_ppu->reg_write(addr, byte);
             break;
         case 0x8000 ... 0xFFFF:
             m_cart->cpu_write(addr, byte);
             break;
         default:
+            printf("NOTE: Invalid CPU write attempt at $%04X\n", addr);
             break;
     }
 }
@@ -1045,7 +1049,7 @@ auto cpu::interrupt_request() -> void
         write(0x0100 + m_stack_ptr, m_prog_counter & 0x00FF);
         m_stack_ptr--;
 
-        // push status register to stack
+        // push m_status register to stack
         set_flag(B, false);
         set_flag(U, true);
         set_flag(I, true);
@@ -1072,7 +1076,7 @@ auto cpu::nonmaskable_interrupt() -> void
     write(0x0100 + m_stack_ptr, m_prog_counter & 0x00FF);
     m_stack_ptr--;
 
-    // push status register to stack
+    // push m_status register to stack
     set_flag(B, false);
     set_flag(U, true);
     set_flag(I, true);
@@ -1771,4 +1775,14 @@ auto cpu::clock() -> void
     }
 
     m_cycles--;
+}
+
+auto cpu::step() -> void
+{
+    this->m_ppu->clock();
+    this->m_ppu->clock();
+    this->m_ppu->clock();
+
+    if (m_ppu)
+    this->clock();
 }

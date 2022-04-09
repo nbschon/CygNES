@@ -157,3 +157,7 @@ auto cartridge::ppu_write(uint16_t addr, uint8_t byte) -> bool
 
     return success;
 }
+auto cartridge::get_mirroring() const -> bool
+{
+    return m_vertically_mirrored;
+}
