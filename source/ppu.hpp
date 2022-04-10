@@ -181,7 +181,7 @@ class ppu
     ppu();
     auto connect_cartridge(std::shared_ptr<cartridge>& cart) -> void;
     auto reset() -> void;
-    auto clock(line_type type) -> void;
+    auto clock() -> void;
     auto step() -> void;
 
     auto fake_render() -> void;
