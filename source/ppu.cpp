@@ -10,7 +10,7 @@
 
 ppu::ppu()
 {
-    assert(init(m_window, m_renderer, screen_width * 2, screen_height * 2));
+    init(m_window, m_renderer, screen_width * 2, screen_height * 2);
     m_render_target =
         std::shared_ptr<SDL_Texture>(SDL_CreateTexture(&*m_renderer,
                                                        SDL_PIXELFORMAT_RGBA8888,
@@ -19,14 +19,14 @@ ppu::ppu()
                                                        screen_height),
                                      SDL_DestroyTexture);
 
-    for (auto& i : m_vram)
+    for (auto& byte : m_vram)
     {
-        i = 0x00;
+        byte = 0x00;
     }
 
-    for (auto& i : m_pal_ram)
+    for (auto& byte : m_pal_ram)
     {
-        i = 0x00;
+        byte = 0x00;
     }
 
     m_scanline = 0;
@@ -145,7 +145,7 @@ auto ppu::reset() -> void
 
 auto ppu::reg_read(uint16_t addr) -> uint8_t
 {
-    uint8_t byte;
+    uint8_t byte = 0x00;
 
     switch (addr)
     {
@@ -223,7 +223,7 @@ auto ppu::reg_write(uint16_t addr, uint8_t byte) -> void
             else
             {
                 m_temp_addr.low_byte = byte;
-                m_vram_addr = m_temp_addr;
+                m_vram_addr.addr = m_temp_addr.addr;
                 m_latch = !m_latch;
             }
             break;
@@ -246,7 +246,7 @@ auto ppu::reg_write(uint16_t addr, uint8_t byte) -> void
 
 auto ppu::bus_read(uint16_t addr) -> uint8_t
 {
-    uint8_t byte;
+    uint8_t byte = 0x00;
 
     addr &= 0x3FFF;
 
@@ -279,6 +279,7 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
     {
         case 0x0000 ... 0x1FFF:
             m_cart->ppu_write(addr, byte);
+            printf("NOTE: Writing from PPU to cartridge at addr %04X", addr);
             break;
         case 0x2000 ... 0x3EFF:
             if (m_cart->get_mirroring())
@@ -287,7 +288,7 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
             }
             else
             {
-                m_vram.at(((addr / 2) & 0x400) + (addr % 0x400)) = byte;
+                m_vram.at(((addr / 2) & 0x400) + (addr & 0x3FF)) = byte;
             }
             break;
         case 0x3F00 ... 0x3FFF:
@@ -298,7 +299,7 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
 
 auto ppu::clock() -> void
 {
-    if (m_scanline == 261 or (m_scanline >= 0 and m_scanline <= 240))
+    if (m_scanline == 261 or (m_scanline >= 0 and m_scanline <= 239))
     {
         if (m_scanline == 0 and m_pixel == 0)
         {
@@ -310,10 +311,10 @@ auto ppu::clock() -> void
             m_status.vblank = 0;
         }
 
-        if ((m_pixel >= 2 and m_pixel <= 257)
-            or (m_pixel >= 321 and m_pixel <= 337))
+        if ((m_pixel >= 2 and m_pixel <= 257) or (m_pixel >= 321 and m_pixel <= 337))
         {
             shift();
+
             switch ((m_pixel - 1) % 8)
             {
                 case 0:
@@ -324,26 +325,29 @@ auto ppu::clock() -> void
                     m_attr_byte = bus_read(0x23C0 | (m_vram_addr.addr & 0x0C00)
                                            | ((m_vram_addr.addr >> 4) & 0x38)
                                            | ((m_vram_addr.addr >> 2) & 0x07));
-
-                    if ((m_vram_addr.coarse_y & 0x02) == 0x02)
+                    if (m_vram_addr.coarse_y & 0x2)
                     {
                         m_attr_byte >>= 4;
                     }
-
-                    if ((m_vram_addr.coarse_x & 0x02) == 0x02)
+                    if (m_vram_addr.coarse_x & 0x2)
                     {
                         m_attr_byte >>= 2;
                     }
+
+                    // don't need upper bits for attribute data
+                    m_attr_byte &= 0x3;
                     break;
                 case 4:
-                    m_pattern_low = bus_read(m_ctrl.bg_tbl << 12)
-                        + (static_cast<uint16_t>(m_nt_byte) << 4)
-                        + m_vram_addr.fine_y;
+                    m_pattern_low =
+                        bus_read((m_ctrl.bg_tbl << 12)
+                                 + (static_cast<uint16_t>(m_nt_byte) << 4)
+                                 + m_vram_addr.fine_y);
                     break;
                 case 6:
-                    m_pattern_high = bus_read(m_ctrl.bg_tbl << 12)
-                        + (static_cast<uint16_t>(m_nt_byte) << 4)
-                        + m_vram_addr.fine_y + 8;
+                    m_pattern_high =
+                        bus_read((m_ctrl.bg_tbl << 12)
+                                 + (static_cast<uint16_t>(m_nt_byte) << 4)
+                                 + m_vram_addr.fine_y + 8);
                     break;
                 case 7:
                     inc_x();
@@ -351,36 +355,31 @@ auto ppu::clock() -> void
             }
         }
 
-        switch (m_pixel)
+        if (m_pixel == 256)
         {
-            case 256:
-                inc_y();
-                break;
-            case 257:
-                reload();
-                copy_x();
-                break;
-            case 338:
-            case 340:
-                m_nt_byte = bus_read(0x2000 | (m_vram_addr.addr & 0x0FFF));
-                break;
-            case 280 ... 304:
-                if (m_scanline == 261)
-                {
-                    copy_y();
-                }
-                break;
+            inc_y();
+        }
+
+        if (m_pixel == 257)
+        {
+            reload();
+            copy_x();
+        }
+
+        if (m_pixel == 338 or m_pixel == 340)
+        {
+            m_nt_byte = bus_read(0x2000 | (m_vram_addr.addr & 0x0FFF));
+        }
+
+        if (m_scanline == 261 and m_pixel >= 280 and m_pixel <= 304)
+        {
+            copy_y();
         }
     }
 
-    if (m_scanline == 240)
+    if (m_scanline >= 241 and m_scanline <= 260)
     {
-        // nothing done on postrender line, added for visual clarity
-    }
-
-    if (m_scanline == 241)
-    {
-        if (m_pixel == 1)
+        if (m_scanline == 241 and m_pixel == 1)
         {
             m_status.vblank = 1;
 
@@ -391,7 +390,45 @@ auto ppu::clock() -> void
         }
     }
 
-    draw();
+    uint8_t bg_pix = 0;
+    uint8_t bg_pal = 0;
+
+    if (m_mask.show_bg)
+    {
+        uint16_t mask = 0x8000 >> m_fine_x;
+
+        uint8_t pix_low = (m_p_shift_low & mask) > 0;
+        uint8_t pix_high = (m_p_shift_high & mask) > 0;
+
+        bg_pix = (pix_high << 1) | pix_low;
+
+        uint8_t pal_low = (m_a_shift_low & mask) > 0;
+        uint8_t pal_high = (m_a_shift_high & mask) > 0;
+
+        bg_pal = (pal_high << 1) | pal_low;
+    }
+
+    SDL_Color colo = get_color(bg_pal, bg_pix);
+    SDL_SetRenderDrawColor(&*m_renderer, colo.r, colo.g, colo.b, 0xFF);
+    SDL_RenderDrawPoint(&*m_renderer, m_pixel, m_scanline);
+
+    m_pixel++;
+    if (m_pixel >= 341)
+    {
+        m_pixel = 0;
+
+        m_scanline++;
+        if (m_scanline >= 261)
+        {
+            printf("Frame complete\n");
+            SDL_Rect src_rect = {0, 0, 256, 240};
+            SDL_SetRenderTarget(&*m_renderer, nullptr);
+            SDL_RenderCopy(&*m_renderer, &*m_render_target, &src_rect, nullptr);
+            SDL_RenderPresent(&*m_renderer);
+            SDL_SetRenderTarget(&*m_renderer, &*m_render_target);
+            m_scanline = 0;
+        }
+    }
 }
 
 auto ppu::nonmask() -> bool

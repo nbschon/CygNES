@@ -1781,9 +1781,10 @@ auto cpu::clock() -> void
 
 auto cpu::step() -> void
 {
-    m_ppu->step();
-    m_ppu->step();
-    m_ppu->step();
+    for (int step = 0; step < 3; ++step)
+    {
+        m_ppu->clock();
+    }
 
     if (m_ppu->interr())
     {

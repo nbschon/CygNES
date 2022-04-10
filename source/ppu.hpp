@@ -116,13 +116,13 @@ class ppu
     uint8_t m_pattern_high;
 
     // Pattern table shift register (low)
-    uint8_t m_p_shift_low;
+    uint16_t m_p_shift_low;
     // Pattern table shift register (high)
-    uint8_t m_p_shift_high;
+    uint16_t m_p_shift_high;
     // Attribute table shift register (low)
-    uint8_t m_a_shift_low;
+    uint16_t m_a_shift_low;
     // Attribute table shift register (high)
-    uint8_t m_a_shift_high;
+    uint16_t m_a_shift_high;
 
     // Helper methods to consolidate PPU operations
     auto copy_x() -> void;
@@ -143,7 +143,7 @@ class ppu
   private:
     std::array<uint8_t, vram_size> m_vram;
     std::array<uint8_t, pal_ram_size> m_pal_ram;
-    std::array<SDL_Color, colors_size> m_colors = {{
+    static constexpr std::array<SDL_Color, colors_size> m_colors = {{
         {84, 84, 84}, {0, 30, 116}, {8, 16, 144}, {48, 0, 136},
         {68, 0, 100}, {92, 0, 48}, {84, 4, 0}, {60, 24, 0},
         {32, 42, 0}, {8, 58, 0}, {0, 64, 0}, {0, 60, 0},
@@ -164,6 +164,7 @@ class ppu
         {204, 210, 120}, {180, 222, 120}, {168, 226, 144}, {152, 226, 180},
         {160, 214, 228}, {160, 162, 160}, {0, 0, 0}, {0, 0, 0}
     }};
+
     auto get_color(uint8_t pal, uint8_t pix) -> SDL_Color;
 
     int m_scanline;
