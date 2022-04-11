@@ -131,7 +131,6 @@ class ppu
     auto inc_y()  -> void;
     auto reload() -> void;
     auto shift()  -> void;
-    auto draw()   -> void;
 
     static const int vram_size = 0x800;
     static const int pal_ram_size = 0x20;
@@ -176,17 +175,15 @@ class ppu
          visible,
          post,
          nmi,
-         pre
+         pre,
+         idle
     };
 
     ppu();
     auto connect_cartridge(std::shared_ptr<cartridge>& cart) -> void;
     auto reset() -> void;
-    auto clock() -> void;
+    auto clock(line_type type) -> void;
     auto step() -> void;
-
-    auto fake_render() -> void;
-    auto fake_render_2() -> void;
 
     auto reg_read(uint16_t addr) -> uint8_t;
     auto reg_write(uint16_t addr, uint8_t byte) -> void;

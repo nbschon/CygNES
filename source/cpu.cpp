@@ -1783,7 +1783,7 @@ auto cpu::step() -> void
 {
     for (int step = 0; step < 3; ++step)
     {
-        m_ppu->clock();
+        m_ppu->step();
     }
 
     if (m_ppu->interr())
