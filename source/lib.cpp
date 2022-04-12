@@ -1,24 +1,29 @@
 #include "lib.hpp"
 
+#include <utility>
+
 library::library(std::string path)
     : name("CygNES")
 {
-    cpu CPU = cpu();
-//    ppu PPU = ppu();
-    std::shared_ptr<cartridge> cart = std::make_shared<cartridge>();
+    SDL_Event e;
 
-    if (cart->open_rom_file(path))
+    cpu CPU = cpu();
+    std::shared_ptr<cartridge> cart = std::make_shared<cartridge>();
+    std::shared_ptr<controller> controller_a = std::make_shared<controller>(e);
+
+    if (cart->open_rom_file(std::move(path)))
     {
         CPU.connect_cartridge(cart);
+        CPU.connect_controller(controller_a);
         CPU.reset();
 
-        SDL_Event e;
         bool quit = false;
 
         while (!quit)
         {
-            while (SDL_PollEvent(&e))
+            while (SDL_PollEvent(&e) != 0)
             {
+
                 if (e.type == SDL_QUIT)
                 {
                     quit = true;
@@ -31,12 +36,15 @@ library::library(std::string path)
                         case SDLK_ESCAPE:
                             quit = true;
                             break;
+                        case SDLK_r:
+                            CPU.reset();
+                            break;
                     }
                 }
+                controller_a->get_input();
             }
 
             CPU.step();
-//            PPU.fake_render();
         }
     }
 }

@@ -49,6 +49,13 @@ auto cpu::read(uint16_t addr) -> uint8_t
         case 0x8000 ... 0xFFFF:
             m_cart->cpu_read(addr, byte);
             break;
+        case 0x4016:
+            byte = (m_controller_a_state & 1);
+            printf("Controller state: %02X\n", byte);
+            m_controller_a_state >>= 1;
+            break;
+        case 0x4017:
+            break;
         default:
             printf("NOTE: Invalid CPU read attempt at $%04X\n", addr);
             break;
@@ -70,8 +77,11 @@ auto cpu::write(uint16_t addr, uint8_t byte) -> void
         case 0x8000 ... 0xFFFF:
             m_cart->cpu_write(addr, byte);
             break;
+        case 0x4016:
+            m_controller_a_state = m_controller_a->get_status();
+            break;
         default:
-            printf("NOTE: Invalid CPU write attempt at $%04X\n", addr);
+            printf("NOTE: Invalid CPU write attempt at $%04X w/ value %02X\n", addr, byte);
             break;
     }
 }
@@ -1792,4 +1802,9 @@ auto cpu::step() -> void
     }
 
     clock();
+}
+
+auto cpu::connect_controller(std::shared_ptr<controller>& ctrl) -> void
+{
+    this->m_controller_a = ctrl;
 }

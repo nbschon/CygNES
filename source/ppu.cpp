@@ -169,14 +169,6 @@ auto ppu::bus_read(uint16_t addr) -> uint8_t
             m_cart->ppu_read(addr, byte);
             break;
         case 0x2000 ... 0x3EFF:
-//            if (m_cart->get_mirroring())
-//            {
-//                byte = m_vram.at(addr & 0x800);
-//            }
-//            else
-//            {
-//                byte = m_vram.at(((addr / 2) & 0x400) + (addr % 0x400));
-//            }
             addr &= 0x0FFF;
             if (m_cart->get_mirroring())
             {
@@ -188,7 +180,10 @@ auto ppu::bus_read(uint16_t addr) -> uint8_t
                         break;
                     case 0x0400 ... 0x07FF:
                     case 0x0C00 ... 0x0FFF:
-                        byte = m_vram.at((addr & 0x03FF));
+                        byte = m_vram.at((addr & 0x07FF));
+                        break;
+                    default:
+                        printf("NOTE: Unable to read VRAM at location $%04X\n", addr);
                         break;
                 }
             }
@@ -202,7 +197,10 @@ auto ppu::bus_read(uint16_t addr) -> uint8_t
                         break;
                     case 0x0800 ... 0x0BFF:
                     case 0x0C00 ... 0x0FFF:
-                        byte = m_vram.at((addr & 0x03FF));
+                        byte = m_vram.at((addr & 0x07FF));
+                        break;
+                    default:
+                        printf("NOTE: Unable to read VRAM at location $%04X\n", addr);
                         break;
                 }
             }
@@ -235,7 +233,10 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
                         break;
                     case 0x0400 ... 0x07FF:
                     case 0x0C00 ... 0x0FFF:
-                        m_vram.at((addr & 0x03FF) + 0x400) = byte;
+                        m_vram.at((addr & 0x07FF)) = byte;
+                        break;
+                    default:
+                        printf("NOTE: Unable to write %02X to VRAM at location $%04X\n", byte, addr);
                         break;
                 }
             }
@@ -249,7 +250,10 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
                         break;
                     case 0x0800 ... 0x0BFF:
                     case 0x0C00 ... 0x0FFF:
-                        m_vram.at((addr & 0x03FF) + 0x400) = byte;
+                        m_vram.at((addr & 0x07FF)) = byte;
+                        break;
+                    default:
+                        printf("NOTE: Unable to write %02X to VRAM at location $%04X\n", byte, addr);
                         break;
                 }
             }

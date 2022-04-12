@@ -16,6 +16,7 @@ auto cartridge::open_rom_file(std::string rom_path) -> bool
 
     if (!rom)
     {
+        printf("ERROR: Invalid ROM file! (check file name / path)\n");
         load_success = false;
     }
     else
