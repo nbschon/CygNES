@@ -13,8 +13,8 @@ ppu::ppu()
     init(m_window, m_renderer, screen_width * 2, screen_height * 2);
     m_render_target =
         std::shared_ptr<SDL_Texture>(SDL_CreateTexture(&*m_renderer,
-                                                       SDL_PIXELFORMAT_RGBA8888,
-                                                       SDL_TEXTUREACCESS_TARGET,
+                                                       SDL_PIXELFORMAT_ARGB8888,
+                                                       SDL_TEXTUREACCESS_STREAMING,
                                                        screen_width,
                                                        screen_height),
                                      SDL_DestroyTexture);
@@ -233,7 +233,7 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
                         break;
                     case 0x0400 ... 0x07FF:
                     case 0x0C00 ... 0x0FFF:
-                        m_vram.at((addr & 0x07FF)) = byte;
+                        m_vram.at((addr & 0x07FF) + 0x400) = byte;
                         break;
                     default:
                         printf("NOTE: Unable to write %02X to VRAM at location $%04X\n", byte, addr);
@@ -376,8 +376,8 @@ auto ppu::clock(line_type type) -> void
     }
 
     SDL_Color col = get_color(bg_pal, bg_pix);
-    SDL_SetRenderDrawColor(&*m_renderer, col.r, col.g, col.b, 0xFF);
-    SDL_RenderDrawPoint(&*m_renderer, m_pixel, m_scanline);
+    Uint32 final_pixel = (0xFF << 24) | (col.r << 16) | (col.g << 8) | (col.b);
+    m_frame_buffer[(m_scanline * screen_width) + m_pixel] = final_pixel;
 }
 
 auto ppu::nonmask() -> bool
@@ -429,6 +429,7 @@ auto ppu::step() -> void
         {
             printf("Frame complete\n");
             SDL_Rect src_rect = {0, 0, 256, 240};
+            SDL_UpdateTexture(&*m_render_target, nullptr, m_frame_buffer, screen_width * sizeof(uint32_t));
             SDL_SetRenderTarget(&*m_renderer, nullptr);
             SDL_RenderCopy(&*m_renderer, &*m_render_target, &src_rect, nullptr);
             SDL_RenderPresent(&*m_renderer);

@@ -30,7 +30,11 @@ add_library(
     source/ppu.cpp
     source/ppu.hpp
     source/mapper000.cpp
-    source/mapper000.hpp source/controller.cpp source/controller.hpp)
+    source/mapper000.hpp
+    source/controller.cpp
+    source/controller.hpp)
+
+#target_compile_definitions(CygNES_lib PRIVATE CPU_LOG=1)
 
 target_include_directories(
     CygNES_lib ${warning_guard}
@@ -39,7 +43,7 @@ target_include_directories(
     ${SDL2_INCLUDE_DIRS}
 )
 
-#target_compile_options(CygNES_lib PRIVATE "-O3")
+target_compile_options(CygNES_lib PRIVATE "-O3")
 
 target_compile_features(CygNES_lib PUBLIC cxx_std_17)
 

@@ -23,6 +23,15 @@ class controller
     SDL_KeyCode m_btn_left = SDLK_LEFT;
     SDL_KeyCode m_btn_right = SDLK_RIGHT;
 
+    bool m_a_pressed = false;
+    bool m_b_pressed = false;
+    bool m_select_pressed = false;
+    bool m_start_pressed = false;
+    bool m_up_pressed = false;
+    bool m_down_pressed = false;
+    bool m_left_pressed = false;
+    bool m_right_pressed = false;
+
   public:
     controller(SDL_Event& input);
     auto get_input() -> void;

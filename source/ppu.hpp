@@ -14,9 +14,14 @@
 
 class ppu
 {
+    static const int screen_width = 256;
+    static const int screen_height = 240;
+
     std::shared_ptr<SDL_Renderer> m_renderer;
     std::shared_ptr<SDL_Window> m_window;
     std::shared_ptr<SDL_Texture> m_render_target;
+    Uint32 * m_frame_buffer = new uint32_t[screen_width * screen_height];
+    int m_pitch = screen_width * sizeof(Uint32);
 
     std::shared_ptr<cartridge> m_cart = nullptr;
 
@@ -135,9 +140,6 @@ class ppu
     static const int vram_size = 0x800;
     static const int pal_ram_size = 0x20;
     static const int colors_size = 0x40;
-
-    static const int screen_width = 256;
-    static const int screen_height = 240;
 
   private:
     std::array<uint8_t, vram_size> m_vram;

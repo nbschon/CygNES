@@ -23,7 +23,10 @@ cpu::cpu()
 #elif __linux__
     file_name.append("-linux.txt");
 #endif
+
+#ifdef CPU_LOG
     m_log.open(file_name);
+#endif
 
     m_ppu = std::make_shared<ppu>();
 }
@@ -130,7 +133,9 @@ auto cpu::get_absolute() -> void
 
     m_addr_abs = ((high_byte << 8) | low_byte);
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_absolute_x() -> void
@@ -148,7 +153,9 @@ auto cpu::get_absolute_x() -> void
         m_changed_page = true;
     }
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_absolute_y() -> void
@@ -166,26 +173,34 @@ auto cpu::get_absolute_y() -> void
         m_changed_page = true;
     }
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_accumulator() -> void
 {
     m_fetched_byte = m_accumulator;
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_fetched_byte);
+#endif
 }
 
 auto cpu::get_implied() -> void
 {
+#ifdef CPU_LOG
     m_bytes << 0;
+#endif
 }
 
 auto cpu::get_immediate() -> void
 {
     m_addr_abs = m_prog_counter++;
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(read(m_addr_abs));
+#endif
 }
 
 auto cpu::get_indirect() -> void
@@ -209,7 +224,9 @@ auto cpu::get_indirect() -> void
         m_addr_abs = (read(pointer + 1) << 8) | read(pointer);
     }
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_indirect_x() -> void
@@ -222,7 +239,9 @@ auto cpu::get_indirect_x() -> void
 
     m_addr_abs = (high_pointer << 8) | low_pointer;
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_indirect_y() -> void
@@ -242,7 +261,9 @@ auto cpu::get_indirect_y() -> void
         m_changed_page = true;
     }
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_relative() -> void
@@ -257,7 +278,9 @@ auto cpu::get_relative() -> void
         m_addr_rel |= 0xFF00;
     }
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_rel);
+#endif
 }
 
 auto cpu::get_zeropage() -> void
@@ -268,7 +291,9 @@ auto cpu::get_zeropage() -> void
     // keep address to page 0 of RAM
     m_addr_abs &= 0x00FF;
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_zeropage_x() -> void
@@ -277,7 +302,9 @@ auto cpu::get_zeropage_x() -> void
     m_prog_counter++;
     m_addr_abs &= 0x00FF;
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 auto cpu::get_zeropage_y() -> void
@@ -286,7 +313,9 @@ auto cpu::get_zeropage_y() -> void
     m_prog_counter++;
     m_addr_abs &= 0x00FF;
 
+#ifdef CPU_LOG
     m_bytes << static_cast<int>(m_addr_abs);
+#endif
 }
 
 // INSTRUCTIONS
@@ -1115,6 +1144,7 @@ auto cpu::clock() -> void
 
         // THIS IS UGLY
         // make it look better at some point (if possible)
+#ifdef CPU_LOG
         std::stringstream logLine;
         logLine << std::uppercase << std::hex << m_prog_counter << " " << std::hex << std::setfill('0') << std::setw(2) << (int)m_opcode;
         std::stringstream regLine;
@@ -1126,6 +1156,7 @@ auto cpu::clock() -> void
 
         m_bytes.clear();
         m_bytes.str(std::string());
+#endif
 
         m_prog_counter++;
 
@@ -1782,8 +1813,10 @@ auto cpu::clock() -> void
                 break;
         }
 
+#ifdef CPU_LOG
         m_log << logLine.str() << " " << std::hex << std::uppercase << std::setfill('0') << std::setw(4) <<
             atoi(m_bytes.str().c_str()) << "\t\t " << regLine.str() << std::endl;
+#endif
     }
 
     m_cycles--;

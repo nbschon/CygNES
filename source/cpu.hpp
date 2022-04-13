@@ -34,8 +34,10 @@ class cpu
     // typedef uint16_t(CPU::*addrModePtr)();
 
     // Used for logging
+#ifdef CPU_LOG
     std::ofstream m_log;
     std::stringstream m_bytes;
+#endif
 
     // Check to see if page boundaries are crossed for variable-length
     // instructions
