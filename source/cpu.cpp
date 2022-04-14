@@ -58,6 +58,7 @@ auto cpu::read(uint16_t addr) -> uint8_t
             m_controller_a_state >>= 1;
             break;
         case 0x4017:
+            // Controller port 2 would go here
             break;
         default:
             printf("NOTE: Invalid CPU read attempt at $%04X\n", addr);
@@ -79,6 +80,12 @@ auto cpu::write(uint16_t addr, uint8_t byte) -> void
             break;
         case 0x8000 ... 0xFFFF:
             m_cart->cpu_write(addr, byte);
+            break;
+        case 0x4014:
+            printf("NOTE: DMA from page $%02X of RAM into PPU\n", byte);
+            m_oam_addr = byte;
+            m_oam_index = 0;
+            m_try_transfer = true;
             break;
         case 0x4016:
             m_controller_a_state = m_controller_a->get_status();
@@ -952,7 +959,7 @@ void cpu::RTS(addr_mode_ptr mode)
 
 void cpu::RTI(addr_mode_ptr mode)
 {
-    printf("[![RTI]!]\n");
+//    printf("[![RTI]!]\n");
 
     (this->*mode)();
 
@@ -1081,7 +1088,7 @@ auto cpu::reset() -> void
 
 auto cpu::interrupt_request() -> void
 {
-    printf("[![IRQ]!]\n");
+//    printf("[![IRQ]!]\n");
     if (!get_flag(I))
     {
         // push prog counter to stack
@@ -1110,7 +1117,7 @@ auto cpu::interrupt_request() -> void
 
 auto cpu::nonmaskable_interrupt() -> void
 {
-    printf("[![NMI]!]\n");
+//    printf("[![NMI]!]\n");
     // push prog counter to stack
     write(0x0100 + m_stack_ptr, (m_prog_counter >> 8) & 0x00FF);
     m_stack_ptr--;
@@ -1834,7 +1841,40 @@ auto cpu::step() -> void
         nonmaskable_interrupt();
     }
 
-    clock();
+    if (!m_try_transfer)
+    {
+        clock();
+    }
+    else
+    {
+        if (!m_do_transfer)
+        {
+            if (m_ticks % 2 != 0)
+            {
+                m_do_transfer = true;
+            }
+        }
+        else
+        {
+            if (m_ticks % 2 == 0)
+            {
+                m_oam_byte = read((static_cast<uint16_t>(m_oam_addr << 8)) | m_oam_index);
+            }
+            else
+            {
+                m_ppu->oam_write(m_oam_index, m_oam_byte);
+                m_oam_index++;
+
+                if (m_oam_index == 0)
+                {
+                    m_try_transfer = false;
+                    m_do_transfer = false;
+                }
+            }
+        }
+    }
+
+    ++m_ticks;
 }
 
 auto cpu::connect_controller(std::shared_ptr<controller>& ctrl) -> void

@@ -29,6 +29,11 @@ ppu::ppu()
         byte = 0x00;
     }
 
+    for (auto& byte : m_oam)
+    {
+        byte = 0x00;
+    }
+
     m_scanline = 0;
     m_pixel = 0;
 }
@@ -68,7 +73,7 @@ auto ppu::reg_read(uint16_t addr) -> uint8_t
             m_latch = false;
             break;
         case 0x04:
-            // TODO: OAM stuff
+            byte = m_oam.at(m_oam_addr);
             break;
         case 0x07:
             byte = m_read_buffer;
@@ -108,10 +113,10 @@ auto ppu::reg_write(uint16_t addr, uint8_t byte) -> void
             m_mask.mask = byte;
             break;
         case 0x03:
-            // TODO: OAM
+            m_oam_addr = byte;
             break;
         case 0x04:
-            // TODO: OAM
+            m_oam.at(m_oam_addr) = byte;
             break;
         case 0x05:
             if (!m_latch)
@@ -429,7 +434,7 @@ auto ppu::step() -> void
         {
             printf("Frame complete\n");
             SDL_Rect src_rect = {0, 0, 256, 240};
-            SDL_UpdateTexture(&*m_render_target, nullptr, m_frame_buffer, screen_width * sizeof(uint32_t));
+            SDL_UpdateTexture(&*m_render_target, nullptr, m_frame_buffer, m_pitch);
             SDL_SetRenderTarget(&*m_renderer, nullptr);
             SDL_RenderCopy(&*m_renderer, &*m_render_target, &src_rect, nullptr);
             SDL_RenderPresent(&*m_renderer);
@@ -536,4 +541,9 @@ auto ppu::shift() -> void
 auto ppu::get_color(uint8_t pal, uint8_t pix) -> SDL_Color
 {
     return m_colors.at(bus_read(0x3F00 + (pal << 2) + pix) & 0x3F);
+}
+
+auto ppu::oam_write(uint8_t index, uint8_t byte) -> void
+{
+    m_oam.at(index) = byte;
 }

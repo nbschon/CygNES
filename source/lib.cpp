@@ -46,4 +46,6 @@ library::library(std::string path)
             CPU.step();
         }
     }
+
+    SDL_Quit();
 }

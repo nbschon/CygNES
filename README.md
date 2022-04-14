@@ -1,6 +1,9 @@
 # CygNES
 
-This is the CygNES project.
+A Nintendo Entertainment System emulator written in C++ with SDL2.
+
+Currently, the CPU, controller input, iNES Mapper 000, and 
+PPU background rendering are implemented. 
 
 # Building and installing
 

@@ -11,6 +11,9 @@
 
 class cpu
 {
+    // Clock cycles / ticks
+    uint64_t m_ticks = 0;
+
     // Constants for frequently used numbers
     const int stack_offset = 0x100;
     const int minus_bit = 0x80;
@@ -29,18 +32,15 @@ class cpu
     uint8_t m_controller_a_state;
 
     // Type definition for passing addressing mode to instruction
-    // using addr_mode_ptr = uint16_t(cpu::*)();
     using addr_mode_ptr = auto (cpu::*)(void) -> void;
-    // typedef uint16_t(CPU::*addrModePtr)();
 
-    // Used for logging
 #ifdef CPU_LOG
+    // Used for logging
     std::ofstream m_log;
     std::stringstream m_bytes;
 #endif
 
-    // Check to see if page boundaries are crossed for variable-length
-    // instructions
+    // Check to see if page boundaries are crossed for variable-length instructions
     bool m_changed_page;
 
     auto fetch_byte_at_addr() -> uint8_t;
@@ -52,14 +52,7 @@ class cpu
     uint8_t m_opcode = 0x00;
     uint8_t m_cycles = 0;
 
-    /*
-            Registers and pointers, etc.
-
-            Brief aside:
-            I've seen program counter be called the
-            "instruction pointer," which is honestly
-            a much better name for it.
-    */
+    // Registers and pointers, etc.
     uint8_t m_accumulator;
     uint8_t m_x_reg, m_y_reg;
     uint16_t m_prog_counter;
@@ -176,6 +169,13 @@ class cpu
     auto BRK(addr_mode_ptr mode) -> void;
     auto NOP(addr_mode_ptr mode) -> void;
     auto XXX() -> void;
+
+    // Used for DMA into the OAM of the PPU
+    uint8_t m_oam_index;
+    uint8_t m_oam_addr;
+    uint8_t m_oam_byte;
+    bool m_try_transfer;
+    bool m_do_transfer;
 
   public:
     cpu();

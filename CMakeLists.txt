@@ -43,7 +43,7 @@ target_include_directories(
     ${SDL2_INCLUDE_DIRS}
 )
 
-target_compile_options(CygNES_lib PRIVATE "-O3")
+#target_compile_options(CygNES_lib PRIVATE "-O3")
 
 target_compile_features(CygNES_lib PUBLIC cxx_std_17)
 
