@@ -8,7 +8,7 @@
 
 #include "utils.hpp"
 
-ppu::ppu()
+ppu::ppu() : m_scanline(0), m_pixel(0)
 {
     init(m_window, m_renderer, screen_width * 2, screen_height * 2);
     m_render_target =
@@ -33,9 +33,6 @@ ppu::ppu()
     {
         byte = 0x00;
     }
-
-    m_scanline = 0;
-    m_pixel = 0;
 }
 
 auto ppu::connect_cartridge(std::shared_ptr<cartridge>& cart) -> void

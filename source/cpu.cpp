@@ -28,7 +28,7 @@ cpu::cpu()
     m_log.open(file_name);
 #endif
 
-    m_ppu = std::make_shared<ppu>();
+    m_ppu = std::make_unique<ppu>();
 }
 
 auto cpu::connect_cartridge(std::shared_ptr<cartridge>& cart) -> void

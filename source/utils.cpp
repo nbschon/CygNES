@@ -17,7 +17,7 @@ bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& re
     }
     else
     {
-        //Set mTexture filtering to linear
+        //Set texture filtering to linear
         if (!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"))
         {
             printf("Warning: Linear texture filtering not enabled!");
@@ -72,13 +72,4 @@ bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& re
     }
 
     return success;
-}
-
-void close(SDL_Window** window, SDL_Renderer** renderer)
-{
-    *window = nullptr;
-    *renderer = nullptr;
-
-    SDL_Quit();
-    //IMG_Quit();
 }

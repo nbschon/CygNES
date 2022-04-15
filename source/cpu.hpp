@@ -27,7 +27,7 @@ class cpu
 
     // Other pieces of hardware the CPU needs to see
     std::shared_ptr<cartridge> m_cart = nullptr;
-    std::shared_ptr<ppu> m_ppu = nullptr;
+    std::unique_ptr<ppu> m_ppu = nullptr;
     std::shared_ptr<controller> m_controller_a = nullptr;
     uint8_t m_controller_a_state;
 
