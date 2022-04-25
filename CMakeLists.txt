@@ -45,6 +45,8 @@ target_include_directories(
 
 #target_compile_options(CygNES_lib PRIVATE "-O3")
 
+add_compile_options(-Wall -Wextra)
+
 target_compile_features(CygNES_lib PUBLIC cxx_std_17)
 
 # ---- Declare executable ----

@@ -4,7 +4,7 @@
 
 #include "utils.hpp"
 
-bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& renderer, int screenWidth, int screenHeight)
+bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& renderer, int screen_width, int screen_height)
 {
     //Initialization flag
     bool success = true;
@@ -36,8 +36,8 @@ bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& re
 #endif
 
         //Create window
-        window = std::shared_ptr<SDL_Window>(SDL_CreateWindow("nes_cpp", SDL_WINDOWPOS_UNDEFINED_DISPLAY(1), SDL_WINDOWPOS_UNDEFINED, screenWidth,
-                                   screenHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE), SDL_DestroyWindow);
+        window = std::shared_ptr<SDL_Window>(SDL_CreateWindow("nes_cpp", SDL_WINDOWPOS_UNDEFINED_DISPLAY(1), SDL_WINDOWPOS_UNDEFINED, screen_width,
+                                   screen_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE), SDL_DestroyWindow);
         if (window == nullptr)
         {
             printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
@@ -58,7 +58,7 @@ bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& re
                 //Initialize renderer color
                 SDL_SetRenderDrawColor(&*renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-                SDL_SetWindowMinimumSize(&*window, screenWidth, screenHeight);
+                SDL_SetWindowMinimumSize(&*window, screen_width, screen_height);
 
 //                //Initialize PNG loading
 //                int imgFlags = IMG_INIT_PNG;

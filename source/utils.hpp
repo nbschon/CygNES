@@ -8,6 +8,6 @@
 #include "SDL.h"
 #include <memory>
 
-bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& renderer, int screenWidth, int screenHeight);
+bool init(std::shared_ptr<SDL_Window>& window, std::shared_ptr<SDL_Renderer>& renderer, int screen_width, int screen_height);
 
 #endif //CYGNES_UTILS_H

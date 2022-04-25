@@ -51,7 +51,7 @@ auto ppu::reset() -> void
 
     SDL_SetRenderTarget(&*m_renderer, &*m_render_target);
     SDL_SetRenderDrawColor(&*m_renderer, 0x00, 0x00, 0x00, 0xFF);
-    SDL_Rect fill_rect = {0, 0, 256, 240};
+    SDL_Rect fill_rect = {0, 0, screen_width, screen_height};
     SDL_RenderFillRect(&*m_renderer, &fill_rect);
     SDL_SetRenderTarget(&*m_renderer, nullptr);
     SDL_RenderCopy(&*m_renderer, &*m_render_target, &fill_rect, nullptr);
@@ -235,7 +235,7 @@ auto ppu::bus_write(uint16_t addr, uint8_t byte) -> void
                         break;
                     case 0x0400 ... 0x07FF:
                     case 0x0C00 ... 0x0FFF:
-                        m_vram.at((addr & 0x07FF) + 0x400) = byte;
+                        m_vram.at((addr & 0x07FF)) = byte;
                         break;
                     default:
                         printf("NOTE: Unable to write %02X to VRAM at location $%04X\n", byte, addr);
@@ -296,11 +296,11 @@ auto ppu::clock(line_type type) -> void
                         m_attr_byte = bus_read(0x23C0 | (m_vram_addr.addr & 0x0C00)
                                                | ((m_vram_addr.addr >> 4) & 0x38)
                                                | ((m_vram_addr.addr >> 2) & 0x07));
-                        if (m_vram_addr.coarse_y & 0x2)
+                        if ((m_vram_addr.coarse_y & 0x2) == 0x2)
                         {
                             m_attr_byte >>= 4;
                         }
-                        if (m_vram_addr.coarse_x & 0x2)
+                        if ((m_vram_addr.coarse_x & 0x2) == 0x2)
                         {
                             m_attr_byte >>= 2;
                         }
@@ -366,13 +366,13 @@ auto ppu::clock(line_type type) -> void
     {
         uint16_t mask = 0x8000 >> m_fine_x;
 
-        uint8_t pix_low = (m_p_shift_low & mask) > 0;
-        uint8_t pix_high = (m_p_shift_high & mask) > 0;
+        uint8_t pix_low = ((m_p_shift_low & mask) > 0 ? 1 : 0);
+        uint8_t pix_high = ((m_p_shift_high & mask) > 0 ? 1 : 0);
 
         bg_pix = (pix_high << 1) | pix_low;
 
-        uint8_t pal_low = (m_a_shift_low & mask) > 0;
-        uint8_t pal_high = (m_a_shift_high & mask) > 0;
+        uint8_t pal_low = ((m_a_shift_low & mask) > 0 ? 1 : 0);
+        uint8_t pal_high = ((m_a_shift_high & mask) > 0 ? 1 : 0);
 
         bg_pal = (pal_high << 1) | pal_low;
     }
@@ -430,7 +430,7 @@ auto ppu::step() -> void
         if (m_scanline > 261)
         {
             printf("Frame complete\n");
-            SDL_Rect src_rect = {0, 0, 256, 240};
+            SDL_Rect src_rect = {0, 0, screen_width, screen_height};
             SDL_UpdateTexture(&*m_render_target, nullptr, m_frame_buffer, m_pitch);
             SDL_SetRenderTarget(&*m_renderer, nullptr);
             SDL_RenderCopy(&*m_renderer, &*m_render_target, &src_rect, nullptr);
